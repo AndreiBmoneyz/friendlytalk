@@ -15,48 +15,52 @@ body {
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:24px;
+  gap:20px;
   padding:24px;
 }
 h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; }
 h1 span { color:#5865F2; }
 .subtitle { color:rgba(255,255,255,0.4); font-size:14px; }
 
+/* Login screen */
+#loginScreen { display:flex; flex-direction:column; align-items:center; gap:20px; }
+.discord-btn {
+  display:flex; align-items:center; gap:12px;
+  background:#5865F2; color:#fff; border:none;
+  padding:14px 28px; border-radius:12px;
+  font-size:15px; font-weight:600; cursor:pointer;
+  letter-spacing:0.02em; text-decoration:none;
+  transition:opacity 0.15s;
+}
+.discord-btn:hover { opacity:0.88; }
+.discord-btn svg { width:22px; height:22px; fill:#fff; }
+
+/* Main app */
+#appScreen { display:none; flex-direction:column; align-items:center; gap:20px; width:100%; max-width:420px; }
+
+.user-bar {
+  width:100%; display:flex; align-items:center; justify-content:space-between;
+  background:#17171f; border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px; padding:10px 16px;
+}
+.user-info { display:flex; align-items:center; gap:10px; }
+.user-avatar { width:36px; height:36px; border-radius:50%; border:2px solid rgba(255,255,255,0.1); }
+.user-name { font-size:14px; font-weight:500; }
+.logout-btn {
+  background:none; border:none; color:rgba(255,255,255,0.3);
+  font-size:12px; cursor:pointer; letter-spacing:0.03em;
+}
+.logout-btn:hover { color:rgba(255,255,255,0.6); }
+
 .card {
-  background:#17171f;
-  border:1px solid rgba(255,255,255,0.07);
-  border-radius:16px;
-  padding:28px;
-  width:100%;
-  max-width:420px;
-  display:flex;
-  flex-direction:column;
-  gap:16px;
+  background:#17171f; border:1px solid rgba(255,255,255,0.07);
+  border-radius:16px; padding:24px; width:100%;
+  display:flex; flex-direction:column; gap:14px;
 }
-
-input {
-  background:#0f0f13;
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:10px;
-  padding:12px 16px;
-  color:#fff;
-  font-size:15px;
-  outline:none;
-  width:100%;
-}
-input:focus { border-color:#5865F2; }
-input::placeholder { color:rgba(255,255,255,0.25); }
-
 .btn {
-  padding:13px;
-  border-radius:10px;
-  border:none;
-  font-size:15px;
-  font-weight:600;
-  cursor:pointer;
-  width:100%;
-  letter-spacing:0.02em;
-  transition:opacity 0.15s, transform 0.1s;
+  padding:13px; border-radius:10px; border:none;
+  font-size:15px; font-weight:600; cursor:pointer; width:100%;
+  letter-spacing:0.02em; transition:opacity 0.15s, transform 0.1s;
 }
 .btn:active { transform:scale(0.98); }
 .btn:hover { opacity:0.88; }
@@ -64,71 +68,43 @@ input::placeholder { color:rgba(255,255,255,0.25); }
 .btn-primary { background:#5865F2; color:#fff; }
 .btn-danger { background:rgba(226,75,74,0.15); color:#E24B4A; border:1px solid rgba(226,75,74,0.25); }
 
-.status {
-  text-align:center;
-  font-size:13px;
-  color:rgba(255,255,255,0.4);
-  min-height:20px;
-}
+.status { text-align:center; font-size:13px; color:rgba(255,255,255,0.4); min-height:20px; }
 .status.active { color:#f5c842; }
-.status.success { color:#1D9E75; }
 .status.error { color:#E24B4A; }
 
 .queue-info {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  justify-content:center;
-  font-size:13px;
-  color:rgba(255,255,255,0.35);
+  display:flex; align-items:center; gap:8px; justify-content:center;
+  font-size:13px; color:rgba(255,255,255,0.35);
 }
-.dot {
-  width:8px; height:8px; border-radius:50%;
-  background:#f5c842;
-  animation:pulse 1.2s infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity:1; transform:scale(1); }
-  50% { opacity:0.4; transform:scale(0.8); }
-}
+.dot { width:8px; height:8px; border-radius:50%; background:#f5c842; animation:pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.8);} }
 
-.room-card {
-  background:#0f1f0f;
-  border:1px solid rgba(29,158,117,0.3);
-  border-radius:16px;
-  padding:24px;
-  width:100%;
-  max-width:420px;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  display:none;
+/* Room card */
+#roomCard {
+  background:#0f1f0f; border:1px solid rgba(29,158,117,0.3);
+  border-radius:16px; padding:24px; width:100%; max-width:420px;
+  flex-direction:column; gap:14px; display:none;
 }
-.room-card h2 { font-size:16px; color:#1D9E75; }
+#roomCard h2 { font-size:16px; color:#1D9E75; }
+
+.room-avatars { display:flex; gap:10px; flex-wrap:wrap; }
+.room-user {
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+}
+.room-user img {
+  width:48px; height:48px; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.15);
+}
+.room-user span { font-size:10px; color:rgba(255,255,255,0.4); }
+
 .join-discord-btn {
-  background:#5865F2;
-  color:#fff;
-  border:none;
-  padding:13px;
-  border-radius:10px;
-  font-size:15px;
-  font-weight:600;
-  cursor:pointer;
-  text-decoration:none;
-  text-align:center;
-  display:block;
-  letter-spacing:0.02em;
+  background:#5865F2; color:#fff; border:none;
+  padding:13px; border-radius:10px; font-size:15px; font-weight:600;
+  cursor:pointer; text-decoration:none; text-align:center; display:block;
+  transition:opacity 0.15s;
 }
 .join-discord-btn:hover { opacity:0.88; }
-.room-users { display:flex; flex-wrap:wrap; gap:8px; }
-.user-chip {
-  background:rgba(255,255,255,0.07);
-  padding:4px 12px;
-  border-radius:20px;
-  font-size:12px;
-  color:rgba(255,255,255,0.6);
-}
-.room-note { font-size:12px; color:rgba(255,255,255,0.25); text-align:center; }
+.room-note { font-size:11px; color:rgba(255,255,255,0.2); text-align:center; }
 </style>
 </head>
 <body>
@@ -136,60 +112,80 @@ input::placeholder { color:rgba(255,255,255,0.25); }
 <h1>Friends<span>Talking</span></h1>
 <p class="subtitle">Meet random people. Just talk.</p>
 
-<div class="card" id="mainCard">
-  <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="32"/>
-  <button class="btn btn-primary" id="connectBtn" onclick="joinQueue()">Connect with strangers</button>
-  <button class="btn btn-danger" id="leaveBtn" onclick="leaveQueue()" style="display:none">Leave queue</button>
-  <div class="status" id="statusMsg"></div>
-  <div class="queue-info" id="queueInfo" style="display:none">
-    <div class="dot"></div>
-    <span id="queueText">Waiting for others...</span>
+<!-- Login screen -->
+<div id="loginScreen">
+  <a href="/auth/login" class="discord-btn">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057.1 18.08.11 18.1.127 18.113a19.892 19.892 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+    </svg>
+    Login with Discord
+  </a>
+  <p style="font-size:12px;color:rgba(255,255,255,0.2);">You need a Discord account to use this site</p>
+</div>
+
+<!-- App (shown when logged in) -->
+<div id="appScreen">
+  <div class="user-bar">
+    <div class="user-info">
+      <img class="user-avatar" id="userAvatar" src="" alt=""/>
+      <span class="user-name" id="userName"></span>
+    </div>
+    <button class="logout-btn" onclick="window.location='/auth/logout'">Logout</button>
+  </div>
+
+  <div class="card" id="mainCard">
+    <button class="btn btn-primary" id="connectBtn" onclick="joinQueue()">Connect with strangers</button>
+    <button class="btn btn-danger" id="leaveBtn" onclick="leaveQueue()" style="display:none">Leave queue</button>
+    <div class="status" id="statusMsg"></div>
+    <div class="queue-info" id="queueInfo" style="display:none">
+      <div class="dot"></div>
+      <span id="queueText">Waiting for others...</span>
+    </div>
   </div>
 </div>
 
-<div class="room-card" id="roomCard">
+<!-- Room card -->
+<div id="roomCard">
   <h2>✓ Room ready!</h2>
-  <div class="room-users" id="roomUsers"></div>
-  <a id="discordLink" class="join-discord-btn" href="#" target="_blank">Join voice chat →</a>
-  <p class="room-note">Opens Discord in a new tab. Come back here when done.</p>
-  <button class="btn btn-danger" onclick="resetUI()">Leave room</button>
+  <div class="room-avatars" id="roomAvatars"></div>
+  <a id="discordLink" class="join-discord-btn" href="#" target="_blank">Join voice chat on Discord →</a>
+  <p class="room-note">Opens Discord. Come back here when done.</p>
+  <button class="btn btn-danger" onclick="resetUI()" style="margin-top:4px">Leave room</button>
 </div>
 
 <script>
-let username = '';
 let polling = null;
+let currentUser = null;
+
+// Check if logged in on page load
+async function init() {
+  const res = await fetch('/api/me');
+  const data = await res.json();
+  if (data.user) {
+    currentUser = data.user;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'flex';
+    document.getElementById('userAvatar').src = data.user.avatar;
+    document.getElementById('userName').textContent = data.user.username;
+  }
+}
 
 async function joinQueue() {
-  const input = document.getElementById('usernameInput');
-  username = input.value.trim();
-  if (!username) {
-    input.style.borderColor = '#E24B4A';
-    setTimeout(() => input.style.borderColor = '', 800);
-    return;
-  }
-
   setStatus('Joining queue...', 'active');
   document.getElementById('connectBtn').disabled = true;
   document.getElementById('leaveBtn').style.display = 'block';
-  input.disabled = true;
 
   try {
-    const res = await fetch('/api/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username })
-    });
+    const res = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const data = await res.json();
-
     if (data.matched) {
       showRoom(data);
     } else {
       document.getElementById('queueInfo').style.display = 'flex';
       setStatus('', '');
-      // Poll for a match every 2 seconds
       polling = setInterval(pollStatus, 2000);
     }
-  } catch (e) {
+  } catch(e) {
     setStatus('Connection error. Try again.', 'error');
     resetUI();
   }
@@ -199,18 +195,10 @@ async function pollStatus() {
   try {
     const res = await fetch('/api/status');
     const data = await res.json();
-    document.getElementById('queueText').textContent =
-      `${data.queueSize} ${data.queueSize === 1 ? 'person' : 'people'} in queue...`;
-
-    // If queue has 2+ people, try joining again
+    document.getElementById('queueText').textContent = `${data.queueSize} ${data.queueSize === 1 ? 'person' : 'people'} in queue...`;
     if (data.queueSize >= 2) {
       clearInterval(polling);
-      // Re-join to get matched
-      const res2 = await fetch('/api/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
-      });
+      const res2 = await fetch('/api/join', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
       const data2 = await res2.json();
       if (data2.matched) showRoom(data2);
       else polling = setInterval(pollStatus, 2000);
@@ -220,35 +208,33 @@ async function pollStatus() {
 
 function showRoom(data) {
   clearInterval(polling);
-  document.getElementById('mainCard').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'none';
   const roomCard = document.getElementById('roomCard');
   roomCard.style.display = 'flex';
 
-  const usersEl = document.getElementById('roomUsers');
-  usersEl.innerHTML = data.roomUsers.map(u =>
-    `<div class="user-chip">${u}</div>`
-  ).join('');
+  const avatarsEl = document.getElementById('roomAvatars');
+  avatarsEl.innerHTML = data.roomUsers.map(u => `
+    <div class="room-user">
+      <img src="${u.avatar}" alt="${u.username}"/>
+      <span>${u.username}</span>
+    </div>
+  `).join('');
 
   document.getElementById('discordLink').href = data.inviteUrl;
 }
 
 async function leaveQueue() {
   clearInterval(polling);
-  await fetch('/api/leave', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username })
-  }).catch(() => {});
+  await fetch('/api/leave', { method: 'POST', headers: { 'Content-Type': 'application/json' } }).catch(() => {});
   resetUI();
 }
 
 function resetUI() {
   clearInterval(polling);
-  document.getElementById('mainCard').style.display = 'flex';
+  document.getElementById('appScreen').style.display = 'flex';
   document.getElementById('roomCard').style.display = 'none';
   document.getElementById('connectBtn').disabled = false;
   document.getElementById('leaveBtn').style.display = 'none';
-  document.getElementById('usernameInput').disabled = false;
   document.getElementById('queueInfo').style.display = 'none';
   setStatus('', '');
 }
@@ -258,6 +244,8 @@ function setStatus(msg, type) {
   el.textContent = msg;
   el.className = 'status' + (type ? ' ' + type : '');
 }
+
+init();
 </script>
 </body>
 </html>
