@@ -1,15 +1,29 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, ChannelType, PermissionFlagsBits } = require('discord.js');
 const express = require('express');
+const session = require('express-session');
+const fetch = require('node-fetch');
 const cors = require('cors');
 const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'supersecretkey123',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Discord bot setup
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI;
+const GUILD_ID = process.env.GUILD_ID;
+const MAX_ROOM_SIZE = 5;
+
+// Discord bot
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -18,14 +32,8 @@ const client = new Client({
   ]
 });
 
-// Queue of users waiting to be matched
 let queue = [];
-
-// Active rooms: { channelId: { users: [], inviteCode, createdAt } }
 let rooms = {};
-
-const GUILD_ID = process.env.GUILD_ID;
-const MAX_ROOM_SIZE = 5;
 
 client.once('ready', () => {
   console.log(`Bot ready as ${client.user.tag}`);
@@ -35,56 +43,120 @@ client.once('ready', () => {
 setInterval(async () => {
   const guild = client.guilds.cache.get(GUILD_ID);
   if (!guild) return;
-
-  for (const [channelId, room] of Object.entries(rooms)) {
+  for (const [channelId] of Object.entries(rooms)) {
     try {
       const channel = await guild.channels.fetch(channelId).catch(() => null);
       if (!channel) { delete rooms[channelId]; continue; }
-
-      // If channel is empty for more than 30s, delete it
       if (channel.members.size === 0) {
         await channel.delete().catch(() => {});
         delete rooms[channelId];
-        console.log(`Deleted empty channel ${channelId}`);
       }
     } catch (e) {}
   }
 }, 30000);
 
-// API: Join queue and get a room
-app.post('/api/join', async (req, res) => {
-  const { username } = req.body;
-  if (!username) return res.status(400).json({ error: 'Username required' });
+// ─── AUTH ROUTES ──────────────────────────────────────────────────────
 
+// Step 1: redirect to Discord login
+app.get('/auth/login', (req, res) => {
+  const params = new URLSearchParams({
+    client_id: DISCORD_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: 'identify',
+  });
+  res.redirect(`https://discord.com/oauth2/authorize?${params}`);
+});
+
+// Step 2: Discord redirects back here with a code
+app.get('/auth/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.redirect('/?error=no_code');
+
+  try {
+    // Exchange code for access token
+    const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: DISCORD_CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: REDIRECT_URI,
+      }),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) return res.redirect('/?error=token_failed');
+
+    // Get user info from Discord
+    const userRes = await fetch('https://discord.com/api/users/@me', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const user = await userRes.json();
+
+    // Save to session
+    req.session.user = {
+      id: user.id,
+      username: user.username,
+      avatar: user.avatar
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+        : `https://cdn.discordapp.com/embed/avatars/0.png`,
+    };
+
+    res.redirect('/');
+  } catch (err) {
+    console.error('Auth error:', err);
+    res.redirect('/?error=auth_failed');
+  }
+});
+
+// Step 3: logout
+app.get('/auth/logout', (req, res) => {
+  req.session.destroy();
+  res.redirect('/');
+});
+
+// Get current user
+app.get('/api/me', (req, res) => {
+  if (req.session.user) {
+    res.json({ user: req.session.user });
+  } else {
+    res.json({ user: null });
+  }
+});
+
+// ─── QUEUE / ROOM ROUTES ──────────────────────────────────────────────
+
+function requireAuth(req, res, next) {
+  if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+  next();
+}
+
+app.post('/api/join', requireAuth, async (req, res) => {
+  const user = req.session.user;
   const guild = client.guilds.cache.get(GUILD_ID);
   if (!guild) return res.status(500).json({ error: 'Bot not connected to server' });
 
-  // Add user to queue
-  const user = { username, joinedAt: Date.now() };
-  queue.push(user);
+  // Remove if already in queue
+  queue = queue.filter(u => u.id !== user.id);
+  queue.push({ ...user, joinedAt: Date.now() });
 
-  console.log(`${username} joined queue. Queue size: ${queue.length}`);
+  console.log(`${user.username} joined queue. Size: ${queue.length}`);
 
-  // If we have enough people, create a room
   if (queue.length >= 2) {
-    // Take up to MAX_ROOM_SIZE people from queue
     const roomUsers = queue.splice(0, MAX_ROOM_SIZE);
-
     try {
-      // Create a voice channel
       const channel = await guild.channels.create({
         name: `room-${Date.now()}`,
         type: ChannelType.GuildVoice,
         userLimit: MAX_ROOM_SIZE,
-        permissionOverwrites: [
-          {
-            id: guild.roles.everyone,
-            allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.Speak, PermissionFlagsBits.ViewChannel],
-          }
-        ]
+        permissionOverwrites: [{
+          id: guild.roles.everyone,
+          allow: [PermissionFlagsBits.Connect, PermissionFlagsBits.Speak, PermissionFlagsBits.ViewChannel],
+        }]
       });
 
-      // Create an invite link (expires in 1 hour, max 5 uses)
       const invite = await channel.createInvite({
         maxAge: 3600,
         maxUses: MAX_ROOM_SIZE,
@@ -92,52 +164,37 @@ app.post('/api/join', async (req, res) => {
       });
 
       rooms[channel.id] = {
-        users: roomUsers.map(u => u.username),
-        inviteCode: invite.code,
+        users: roomUsers,
         inviteUrl: invite.url,
         createdAt: Date.now(),
       };
 
-      console.log(`Room created: ${channel.id} for users: ${roomUsers.map(u => u.username).join(', ')}`);
-
       return res.json({
         matched: true,
         inviteUrl: invite.url,
-        inviteCode: invite.code,
-        roomUsers: roomUsers.map(u => u.username),
+        roomUsers: roomUsers,
         channelId: channel.id,
       });
-
     } catch (err) {
       console.error('Error creating channel:', err);
-      // Put users back in queue
       queue.unshift(...roomUsers);
       return res.status(500).json({ error: 'Failed to create room' });
     }
   }
 
-  // Not enough people yet, waiting
-  return res.json({ matched: false, queuePosition: queue.length });
+  res.json({ matched: false, queuePosition: queue.length });
 });
 
-// API: Check queue status (poll this every 2 seconds while waiting)
 app.get('/api/status', (req, res) => {
   res.json({ queueSize: queue.length });
 });
 
-// API: Leave queue
-app.post('/api/leave', (req, res) => {
-  const { username } = req.body;
-  queue = queue.filter(u => u.username !== username);
+app.post('/api/leave', requireAuth, (req, res) => {
+  const user = req.session.user;
+  queue = queue.filter(u => u.id !== user.id);
   res.json({ ok: true });
-});
-
-// API: Get active rooms (for debugging)
-app.get('/api/rooms', (req, res) => {
-  res.json({ rooms, queueSize: queue.length });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 client.login(process.env.DISCORD_TOKEN);
