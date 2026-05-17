@@ -1,1 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FriendsTalking</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#0f0f13;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color:#fff;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:24px;
+  padding:24px;
+}
+h1 { font-size:28px; font-weight:700; letter-spacing:-0.5px; }
+h1 span { color:#5865F2; }
+.subtitle { color:rgba(255,255,255,0.4); font-size:14px; }
 
+.card {
+  background:#17171f;
+  border:1px solid rgba(255,255,255,0.07);
+  border-radius:16px;
+  padding:28px;
+  width:100%;
+  max-width:420px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+input {
+  background:#0f0f13;
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px;
+  padding:12px 16px;
+  color:#fff;
+  font-size:15px;
+  outline:none;
+  width:100%;
+}
+input:focus { border-color:#5865F2; }
+input::placeholder { color:rgba(255,255,255,0.25); }
+
+.btn {
+  padding:13px;
+  border-radius:10px;
+  border:none;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+  width:100%;
+  letter-spacing:0.02em;
+  transition:opacity 0.15s, transform 0.1s;
+}
+.btn:active { transform:scale(0.98); }
+.btn:hover { opacity:0.88; }
+.btn:disabled { opacity:0.35; cursor:not-allowed; }
+.btn-primary { background:#5865F2; color:#fff; }
+.btn-danger { background:rgba(226,75,74,0.15); color:#E24B4A; border:1px solid rgba(226,75,74,0.25); }
+
+.status {
+  text-align:center;
+  font-size:13px;
+  color:rgba(255,255,255,0.4);
+  min-height:20px;
+}
+.status.active { color:#f5c842; }
+.status.success { color:#1D9E75; }
+.status.error { color:#E24B4A; }
+
+.queue-info {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  justify-content:center;
+  font-size:13px;
+  color:rgba(255,255,255,0.35);
+}
+.dot {
+  width:8px; height:8px; border-radius:50%;
+  background:#f5c842;
+  animation:pulse 1.2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:0.4; transform:scale(0.8); }
+}
+
+.room-card {
+  background:#0f1f0f;
+  border:1px solid rgba(29,158,117,0.3);
+  border-radius:16px;
+  padding:24px;
+  width:100%;
+  max-width:420px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  display:none;
+}
+.room-card h2 { font-size:16px; color:#1D9E75; }
+.join-discord-btn {
+  background:#5865F2;
+  color:#fff;
+  border:none;
+  padding:13px;
+  border-radius:10px;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+  text-decoration:none;
+  text-align:center;
+  display:block;
+  letter-spacing:0.02em;
+}
+.join-discord-btn:hover { opacity:0.88; }
+.room-users { display:flex; flex-wrap:wrap; gap:8px; }
+.user-chip {
+  background:rgba(255,255,255,0.07);
+  padding:4px 12px;
+  border-radius:20px;
+  font-size:12px;
+  color:rgba(255,255,255,0.6);
+}
+.room-note { font-size:12px; color:rgba(255,255,255,0.25); text-align:center; }
+</style>
+</head>
+<body>
+
+<h1>Friends<span>Talking</span></h1>
+<p class="subtitle">Meet random people. Just talk.</p>
+
+<div class="card" id="mainCard">
+  <input type="text" id="usernameInput" placeholder="Enter your name" maxlength="32"/>
+  <button class="btn btn-primary" id="connectBtn" onclick="joinQueue()">Connect with strangers</button>
+  <button class="btn btn-danger" id="leaveBtn" onclick="leaveQueue()" style="display:none">Leave queue</button>
+  <div class="status" id="statusMsg"></div>
+  <div class="queue-info" id="queueInfo" style="display:none">
+    <div class="dot"></div>
+    <span id="queueText">Waiting for others...</span>
+  </div>
+</div>
+
+<div class="room-card" id="roomCard">
+  <h2>✓ Room ready!</h2>
+  <div class="room-users" id="roomUsers"></div>
+  <a id="discordLink" class="join-discord-btn" href="#" target="_blank">Join voice chat →</a>
+  <p class="room-note">Opens Discord in a new tab. Come back here when done.</p>
+  <button class="btn btn-danger" onclick="resetUI()">Leave room</button>
+</div>
+
+<script>
+let username = '';
+let polling = null;
+
+async function joinQueue() {
+  const input = document.getElementById('usernameInput');
+  username = input.value.trim();
+  if (!username) {
+    input.style.borderColor = '#E24B4A';
+    setTimeout(() => input.style.borderColor = '', 800);
+    return;
+  }
+
+  setStatus('Joining queue...', 'active');
+  document.getElementById('connectBtn').disabled = true;
+  document.getElementById('leaveBtn').style.display = 'block';
+  input.disabled = true;
+
+  try {
+    const res = await fetch('/api/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    const data = await res.json();
+
+    if (data.matched) {
+      showRoom(data);
+    } else {
+      document.getElementById('queueInfo').style.display = 'flex';
+      setStatus('', '');
+      // Poll for a match every 2 seconds
+      polling = setInterval(pollStatus, 2000);
+    }
+  } catch (e) {
+    setStatus('Connection error. Try again.', 'error');
+    resetUI();
+  }
+}
+
+async function pollStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    document.getElementById('queueText').textContent =
+      `${data.queueSize} ${data.queueSize === 1 ? 'person' : 'people'} in queue...`;
+
+    // If queue has 2+ people, try joining again
+    if (data.queueSize >= 2) {
+      clearInterval(polling);
+      // Re-join to get matched
+      const res2 = await fetch('/api/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      const data2 = await res2.json();
+      if (data2.matched) showRoom(data2);
+      else polling = setInterval(pollStatus, 2000);
+    }
+  } catch(e) {}
+}
+
+function showRoom(data) {
+  clearInterval(polling);
+  document.getElementById('mainCard').style.display = 'none';
+  const roomCard = document.getElementById('roomCard');
+  roomCard.style.display = 'flex';
+
+  const usersEl = document.getElementById('roomUsers');
+  usersEl.innerHTML = data.roomUsers.map(u =>
+    `<div class="user-chip">${u}</div>`
+  ).join('');
+
+  document.getElementById('discordLink').href = data.inviteUrl;
+}
+
+async function leaveQueue() {
+  clearInterval(polling);
+  await fetch('/api/leave', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username })
+  }).catch(() => {});
+  resetUI();
+}
+
+function resetUI() {
+  clearInterval(polling);
+  document.getElementById('mainCard').style.display = 'flex';
+  document.getElementById('roomCard').style.display = 'none';
+  document.getElementById('connectBtn').disabled = false;
+  document.getElementById('leaveBtn').style.display = 'none';
+  document.getElementById('usernameInput').disabled = false;
+  document.getElementById('queueInfo').style.display = 'none';
+  setStatus('', '');
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+}
+</script>
+</body>
+</html>
