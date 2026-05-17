@@ -1,7 +1,6 @@
 {
-  "name": "friendstalking",
+  "name": "friendlytalk",
   "version": "1.0.0",
-  "description": "Voice chat matchmaking via Discord",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,7 +8,9 @@
   "dependencies": {
     "discord.js": "^14.0.0",
     "express": "^4.18.0",
+    "express-session": "^1.17.3",
     "dotenv": "^16.0.0",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "node-fetch": "^2.7.0"
   }
 }
